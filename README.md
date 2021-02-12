@@ -21,3 +21,7 @@ Useful upstream information for ORIEN .vcf files:
 
 ## Outputs
 Best performing deep learning models for predicting treatment outcome.
+
+## Dependencies
+Running the following command will install conda (if not already installed), create a conda environment for the project and download ANNOVAR annotation databases:
+bash install_dependencies.sh

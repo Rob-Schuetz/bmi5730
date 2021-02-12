@@ -4,3 +4,6 @@ workflow/.snakemake/*
 # Job Logs #
 *.sh.o*
 *.sh.e*
+
+# ANNOVAR db #
+workflow/annovar/humandb/*
