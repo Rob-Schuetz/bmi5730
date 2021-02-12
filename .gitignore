@@ -1,0 +1,6 @@
+# Snakemake Logs #
+workflow/.snakemake/*
+
+# Job Logs #
+*.sh.o*
+*.sh.e*

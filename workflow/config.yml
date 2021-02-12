@@ -1,0 +1,11 @@
+# Project variables
+project_root: /home/ubuntu/projects/nanoporeReport/
+output_root: results
+input_root: input
+build: hg38
+conda: ~/miniconda
+
+# WES variables
+annovar_script: /home/ubuntu/projects/nanoporeReport/workflow/annovar/table_annovar.pl
+human_db: /home/ubuntu/projects/nanoporeReport/workflow/annovar/humandb/
+dp_threshold: 500

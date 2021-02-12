@@ -1,0 +1,156 @@
+
+import os
+import sys
+
+# import config files
+configfile: "../config/config.yml"
+
+
+# Set up path variables
+cwd = os.getcwd()
+project_path = cwd[:cwd.find('workflow') + len('workflow')]
+input_dir = os.path.join(project_path, config['input_root'])
+output_dir = os.path.join(project_path, config['output_root'])
+
+
+# Set up wildcards
+intervals, = glob_wildcards("intervals/{num}.intervals.list")
+#python split_line.py /path/to/fasta 55000000 intervals/	
+
+# TO DO: Some sort of mechanism to check if all input files for a particular case are
+# present, not just the clinical data
+(SUBJECTS, SAMPLES) = glob_wildcards('../input/{subject}_{sample}.vcf')
+
+
+# Set up directories
+
+# WES directories
+common_mutations_dir = os.path.join(output_dir, "hypermutated/common_mutations")
+annotated_mutations_dir = os.path.join(output_dir, "hypermutated/common_mutations/annotated_vcfs")
+bed_mutations_dir = os.path.join(output_dir, "hypermutated/common_mutations/annotated_beds")
+results_dir = os.path.join(output_dir, "hypermutated/common_mutations/results")
+plots_dir = os.path.join(output_dir, "hypermutated/common_mutations/plots")
+output_sample = os.path.join(annotated_mutations_dir, "{wildcards.sample}.annotated.vcf")
+
+# RNAseq directories
+
+# Clinical directories
+
+# Create directories
+dirs = [common_mutations_dir, annotated_mutations_dir, bed_mutations_dir, results_dir, plots_dir]
+for d in dirs:
+    if not os.path.exists(d):
+        os.mkdir(d)
+
+
+# Commands to be appended to the top of each rule's shell
+shell.prefix('export PATH=$PATH:$PWD; source ' + config['conda'] + '; conda activate ' + config['conda_env'] + ';')
+
+
+rule all:
+	input:
+		expand(os.path.join(output_dir, "{subject}_{sample}.annotated.vcf", subject=SUBJECTS, sample=SAMPLES)
+        #EVENTUALLY: expand(os.path.join(output_dir, "{subject}.best.model"), subject=SUBJECTS)
+
+
+#########################
+#       WES Rules       #
+#########################
+
+rule get_annotations:
+    input:
+        vcf=os.path.join(output_dir, "hypermutated/input", "{sample}.recode.vcf")
+    params:
+        build = config["build"],
+        out = os.path.join(annotated_mutations_dir, "{sample}.annotated.vcf"),
+
+    output:
+        os.path.join(annotated_mutations_dir, "{sample}.annotated.vcf." + build + "_multianno.vcf")
+    shell:
+        "perl /fs/project/PAS0854/Active_projects/Autopsy/canopy_preprocess/annovar/table_annovar.pl "
+        "-vcfinput {input.vcf} "
+        "/fs/project/PAS0854/Active_projects/Autopsy/canopy_preprocess/annovar/humandb/ "
+        "-buildver {params.build} "
+        "--out {params.out} "
+        "-remove "
+        "-protocol refGene,cosmic68 "
+        "-operation g,f "
+        "-nastring . "
+        "-nastring . > /dev/null 2>&1"
+
+rule remove_annovar_outputs:
+    input:
+        vcf=os.path.join(annotated_mutations_dir, "{sample}.annotated.vcf." + build + "_multianno.vcf")
+    output:
+        os.path.join(annotated_mutations_dir, "{sample}.annotated.vcf")
+    shell:
+        "python rename_annovar.py {input.vcf}"
+
+rule get_refgene_bed:
+    input:
+        vcf=os.path.join(annotated_mutations_dir, "{sample}.annotated.vcf")
+    output:
+        os.path.join(bed_mutations_dir, "{sample}.annotated.bed")
+    shell:
+        "python get_refgene_bed.py {input.vcf} {output}"
+
+rule generate_jsons:
+    input:
+        bed=os.path.join(bed_mutations_dir, "{sample}.annotated.bed")
+    output:
+        os.path.join(common_mutations_dir,"json", "{sample}.json")
+    shell:
+        "python bed_to_json.py {input.bed}"
+
+rule combine_jsons:
+    input:
+        jsons=expand(os.path.join(common_mutations_dir,"json", "{sample}.json"), sample=samples)
+    output:
+        os.path.join(common_mutations_dir, "json", 'combined.json')
+    params:
+        dir=os.path.join(common_mutations_dir, "json")
+    shell:
+         "python combine_jsons.py {input.jsons} dir={params.dir}"
+
+rule get_significant_signatures:
+    input:
+        os.path.join(common_mutations_dir, "json", 'combined.json')
+    output:
+        os.path.join(results_dir, "significant_signatures.csv")
+    shell:
+        "python get_significant_signatures.py {input}"
+
+rule sig_differential_expression:
+    input:
+        var_data = os.path.join(common_mutations_dir, "json", 'combined.json'),
+        significant_signatures = os.path.join(results_dir, "significant_signatures.csv"),
+        signature = os.path.join(results_dir, "signatures", "{sig}.txt")
+    params:
+        all_data = os.path.join(output_dir, "hypermutated", "organized_signatures.csv")
+    output:
+        temp(os.path.join(results_dir, "{sig}_de_complete.txt"))
+    shell:
+        "python sig_differential_expression1.py {input.var_data} {params.all_data} {input.signature}"
+
+rule volcano_plots:
+    input:
+        temp(os.path.join(results_dir, "{sig}_de_complete.txt"))
+    output:
+        temp(os.path.join(results_dir, '{sig}_all_done.txt'))
+    shell:
+        "python volcano_plots.py {input}"
+
+
+############################
+#       RNAseq Rules       #
+############################
+
+
+##############################
+#       Clinical Rules       #
+##############################
+
+
+##############################
+#       Modeling Rules       #
+##############################
