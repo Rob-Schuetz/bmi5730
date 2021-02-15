@@ -1,11 +1,12 @@
 # Project variables
-project_root: ~/projects/bmi5370/
-output_root: results
+project_root: ~/bmi5730/
+output_root: output
 input_root: input
 build: hg19
-conda: ~/miniconda
+conda: ~/miniconda/etc/profile.d/conda.sh
+conda_env: bmi5730
 
 # WES variables
-annovar_script: ~/projects/bmi5370/workflow/annovar/table_annovar.pl
-human_db:  ~/projects/bmi5370/workflow/annovar/humandb/
+annovar_script: ~/bmi5730/workflow/annovar/table_annovar.pl
+human_db:  ~/bmi5730/workflow/annovar/humandb/
 dp_threshold: 500

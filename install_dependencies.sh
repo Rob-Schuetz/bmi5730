@@ -23,7 +23,7 @@ rm ~/miniconda.sh
 
 
 # Install ANNOVAR resources
-cd /home/ubuntu/projects/bmi5370/workflow/annovar
+cd ~/bmi5370/workflow/annovar
 mkdir humandb
 perl annotate_variation.pl --downdb --buildver hg19 refGene humandb
 perl annotate_variation.pl --buildver hg19 --downdb seq humandb/hg19_seq

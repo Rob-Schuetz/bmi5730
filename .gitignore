@@ -7,3 +7,4 @@ workflow/.snakemake/*
 
 # ANNOVAR db #
 workflow/annovar/humandb/*
+workflow/annovar/help.fa
